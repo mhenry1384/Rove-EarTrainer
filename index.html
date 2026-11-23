@@ -36,7 +36,7 @@
           <button type="button" id="m-replay" title="Space">Replay</button>
           <button type="button" id="m-slow" title="S">Slower</button>
           <button type="button" id="m-cadence" title="C">Cadence</button>
-          <button type="button" id="m-do" title="D">Do</button>
+          <button type="button" id="m-tonic" title="T">Tonic</button>
           <button type="button" id="m-show" title="A">Show answer</button>
         </div>
         <div class="actions">
@@ -47,8 +47,15 @@
         <details class="settings">
           <summary>Melody settings</summary>
           <div class="grid">
+            <label>Major / minor
+              <select id="m-scale">
+                <option value="major">major</option>
+                <option value="minor">minor (la-based)</option>
+                <option value="mixed">mix of both</option>
+              </select>
+            </label>
             <label>Level <select id="m-level"></select></label>
-            <label>Key <select id="m-keymode"></select></label>
+            <label>Key (tonic) <select id="m-keymode"></select></label>
             <label>New key every
               <select id="m-every">
                 <option value="1">phrase</option>
@@ -73,7 +80,7 @@
 
       <!-- ===== Tonic ===== -->
       <section class="panel" data-panel="tonic" hidden>
-        <p class="lead">A short song in a random key. Find do as fast as you can: hum it, then play it. Then show it to check.</p>
+        <p class="lead">A short song in a random key. Find the home note (do, or la in minor) as fast as you can: hum it, then play it. Then show it to check.</p>
         <div class="timer" id="t-timer">0.0<span>s</span></div>
         <div class="answer" id="t-answer" aria-live="polite">
           <p class="hint">Press <strong>New song</strong> to start.</p>
@@ -81,7 +88,7 @@
         <div class="actions">
           <button type="button" class="primary" id="t-next" title="Enter or N">New song</button>
           <button type="button" id="t-replay" title="Space">Replay</button>
-          <button type="button" id="t-show" title="A">Show do</button>
+          <button type="button" id="t-show" title="A">Show tonic</button>
         </div>
         <div class="actions">
           <button type="button" class="handsfree" data-hf="tonic" title="H">Hands-free</button>
@@ -90,6 +97,13 @@
         <details class="settings">
           <summary>Tonic settings</summary>
           <div class="grid">
+            <label>Major / minor
+              <select id="t-scale">
+                <option value="major">major</option>
+                <option value="minor">minor (la-based)</option>
+                <option value="mixed">mix of both</option>
+              </select>
+            </label>
             <label class="check"><input type="checkbox" id="t-tune" /> Play a tune over the chords</label>
             <label>Tempo <output id="t-tempo-out"></output>
               <input type="range" id="t-tempo" min="60" max="160" step="5" />
@@ -118,6 +132,13 @@
         <details class="settings">
           <summary>Chord settings</summary>
           <div class="grid">
+            <label>Major / minor
+              <select id="c-scale">
+                <option value="major">major</option>
+                <option value="minor">minor (la-based)</option>
+                <option value="mixed">mix of both</option>
+              </select>
+            </label>
             <label>Level <select id="c-level"></select></label>
             <label>Chords per question
               <select id="c-count">
@@ -150,7 +171,7 @@
         <p class="hint">Hands-free runs on its own so both hands stay on the guitar: it plays, waits, plays again, shows the answer, then moves on. Any button stops it.</p>
       </details>
 
-      <p class="keys hint">Keys: Enter = new · Space = replay · A = answer · C = cadence · D = do · S = slower · H = hands-free</p>
+      <p class="keys hint">Keys: Enter = new · Space = replay · A = answer · C = cadence · T = tonic · S = slower · H = hands-free</p>
 
       <footer class="foot">
         Version <span id="app-version"></span> · <a href="mic.html">Mic test</a>

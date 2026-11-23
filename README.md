@@ -5,8 +5,9 @@ the guitar, then show the answer to check yourself. Nothing is scored.
 
 - **Melody:** a cadence sets the key, then a short phrase to play back. Four levels, from
   3–4 stepwise notes up to phrases with chromatic notes (fi, te, le, me, si).
-- **Tonic:** a short chord loop in a random key. Find do as fast as you can; a timer shows how long it took.
+- **Tonic:** a short chord loop in a random key. Find the home note (do, or la in minor) as fast as you can; a timer shows how long it took.
 - **Chords:** a cadence, then chords to name by function (I, IV, V, vi…).
+- **Major and minor:** each tab can use major keys, la-based minor keys, or a mix.
 - **Hands-free:** plays, waits for you, shows the answer and moves on, so your hands stay on the guitar.
 - **Mic test** (`mic.html`): shows the pitch your guitar is playing, using YIN pitch detection.
 

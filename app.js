@@ -7,13 +7,16 @@ const STORE_KEY = "rove-eartrainer";
 const settings = {
   mode: "melody",
   mLevel: 1,
-  mKeyMode: "random", // "random" or a key index 0..11
+  mScale: "major", // "major", "minor" or "mixed" (same for tScale, cScale)
+  mKeyMode: "random", // "random" or the tonic's pitch class 0..11
   mEvery: 4,
   mCadMode: "keychange",
   mTempo: 90,
   mLetters: false,
+  tScale: "major",
   tTune: true,
   tTempo: 100,
+  cScale: "major",
   cLevel: 1,
   cCount: 1,
   volume: 0.8,
@@ -53,9 +56,9 @@ function ignoreCancel(err) {
 }
 
 const CADENCE_CHORD = 0.7;
-// Plays I–IV–V–I. Returns its length in seconds.
-function playCadence(doMidi, at = 0) {
-  const v = cadenceVoicing(doMidi);
+// Plays I–IV–V–I (i–iv–V–i in minor). Returns its length in seconds.
+function playCadence(key, at = 0) {
+  const v = cadenceVoicing(key);
   v.forEach((c, i) => {
     const len = i === 3 ? CADENCE_CHORD * 1.8 : CADENCE_CHORD;
     Synth.chord(c.upper, at + i * CADENCE_CHORD, len * 0.95);
@@ -75,12 +78,7 @@ function fillSelect(sel, items) {
   });
 }
 
-function randomKey(except) {
-  let k;
-  do k = randInt(0, 11);
-  while (k === except);
-  return k;
-}
+const fitsScale = (key, scale) => scale === "mixed" || key.minor === (scale === "minor");
 
 let highlightTimers = [];
 function clearHighlight() {
@@ -114,20 +112,24 @@ const melody = {
     return doMidiFor(this.key);
   },
 
+  // Returns true when the key changed (so the cadence should play).
   pickKey() {
-    if (settings.mKeyMode !== "random") {
-      const k = Number(settings.mKeyMode);
-      const changed = k !== this.key;
-      this.key = k;
-      return changed;
-    }
+    const fixed = settings.mKeyMode === "random" ? null : Number(settings.mKeyMode);
     const every = Number(settings.mEvery);
-    if (this.key === null || (every > 0 && this.phrasesInKey >= every)) {
-      this.key = randomKey(this.key);
-      this.phrasesInKey = 0;
-      return true;
-    }
-    return false;
+    const k = this.key;
+    const due =
+      k === null ||
+      !fitsScale(k, settings.mScale) ||
+      (fixed !== null && k.tonic !== fixed) ||
+      (every > 0 && this.phrasesInKey >= every);
+    if (!due) return false;
+    // With a fixed tonic and "mixed", a key change can only switch major/minor;
+    // with a fixed major- or minor-only key there's nothing to change to.
+    const next = randomKey(settings.mScale, fixed !== null && settings.mScale !== "mixed" ? null : k, fixed);
+    this.phrasesInKey = 0;
+    const changed = !sameKey(next, k);
+    this.key = next;
+    return changed;
   },
 
   // Schedules the phrase. Returns { len, times, durs } in seconds.
@@ -155,11 +157,11 @@ const melody = {
   async next(t) {
     const keyChanged = this.pickKey();
     this.phrasesInKey++;
-    this.notes = makeMelody(Number(settings.mLevel));
+    this.notes = makeMelody(Number(settings.mLevel), this.key.minor);
     this.revealed = false;
     this.render();
     let at = 0;
-    if (keyChanged || settings.mCadMode === "always") at = playCadence(this.doMidi()) + 0.35;
+    if (keyChanged || settings.mCadMode === "always") at = playCadence(this.key) + 0.35;
     await this.playMelody(t, 1, at);
   },
 
@@ -171,13 +173,13 @@ const melody = {
   async cadence(t) {
     if (this.key === null) this.pickKey();
     this.render();
-    await sleep(playCadence(this.doMidi()), t);
+    await sleep(playCadence(this.key), t);
   },
 
-  async playDo(t) {
+  async playTonic(t) {
     if (this.key === null) this.pickKey();
     this.render();
-    Synth.note(this.doMidi(), 0, 1.2);
+    Synth.note(tonicMidiFor(this.key), 0, 1.2);
     await sleep(1.3, t);
   },
 
@@ -190,8 +192,9 @@ const melody = {
   render() {
     const els = this.els;
     if (this.key === null) return;
-    els.key.textContent = `${KEYS[this.key].name} major`;
-    els.keyNote.textContent = `do = ${KEYS[this.key].name}`;
+    const k = this.key;
+    els.key.textContent = keyName(k);
+    els.keyNote.textContent = k.minor ? `la = ${tonicName(k)} · do = ${doName(k)}` : `do = ${doName(k)}`;
     if (!this.notes) return;
     els.answer.textContent = "";
     const row = document.createElement("div");
@@ -201,13 +204,13 @@ const melody = {
       chip.className = "chip" + (this.revealed ? "" : " hidden-note");
       if (this.revealed) {
         chip.type = "button";
-        const oct = octaveOf(n);
+        const oct = octaveOf(n, k.minor);
         chip.innerHTML =
           `<span class="syl${n.alt ? " chromatic" : ""}">${syllable(n)}` +
           (oct < 0 ? '<sub class="oct" title="lower octave">↓</sub>' : "") +
           (oct > 0 ? '<sup class="oct" title="upper octave">↑</sup>' : "") +
           `</span>` +
-          (settings.mLetters ? `<span class="letter">${letterName(this.key, n)}</span>` : "");
+          (settings.mLetters ? `<span class="letter">${letterName(k, n)}</span>` : "");
         chip.title = "Play this note";
         chip.addEventListener("click", () => {
           stopHandsFree();
@@ -243,7 +246,7 @@ const tonic = {
     const doMidi = doMidiFor(this.key);
     const beat = 60 / settings.tTempo;
     const chordLen = beat * 2;
-    const voiced = voiceProgression(this.chords, doMidi);
+    const voiced = voiceProgression(this.chords, doMidi, this.key.minor);
     const reps = 2;
     for (let r = 0; r < reps; r++) {
       voiced.forEach((v, i) => {
@@ -261,9 +264,9 @@ const tonic = {
   },
 
   async next(t) {
-    this.key = randomKey(this.key);
-    this.chords = makeTonicProgression();
-    this.tune = tuneOverChords(this.chords, doMidiFor(this.key));
+    this.key = randomKey(settings.tScale, this.key);
+    this.chords = makeTonicProgression(this.key.minor);
+    this.tune = tuneOverChords(this.chords, doMidiFor(this.key), this.key.minor);
     this.revealed = false;
     this.startedAt = performance.now();
     this.stoppedAt = null;
@@ -281,8 +284,8 @@ const tonic = {
     if (this.stoppedAt === null) this.stoppedAt = performance.now();
     this.revealed = true;
     this.render();
-    Synth.note(doMidiFor(this.key), 0.05, 1.6);
-    Synth.note(doMidiFor(this.key) - 12, 0.05, 1.6, 0.6);
+    Synth.note(tonicMidiFor(this.key), 0.05, 1.6);
+    Synth.note(tonicMidiFor(this.key) - 12, 0.05, 1.6, 0.6);
   },
 
   tick() {
@@ -297,13 +300,15 @@ const tonic = {
     const a = this.els.answer;
     a.textContent = "";
     if (!this.revealed) {
-      a.innerHTML = '<p class="hint">Listening… find do, then press <strong>Show do</strong>.</p>';
+      const what = settings.tScale === "major" ? "do" : settings.tScale === "minor" ? "la" : "home (do or la)";
+      a.innerHTML = `<p class="hint">Listening… find ${what}, then press <strong>Show tonic</strong>.</p>`;
       return;
     }
-    const name = KEYS[this.key].name;
+    const k = this.key;
+    const names = this.chords.map((s) => `${s} (${chordName(k, s)})`).join(" – ");
     a.innerHTML =
-      `<p class="big-answer">do = <strong>${name}</strong></p>` +
-      `<p class="hint">Key of ${name} major. The chords were ${this.chords.join(" – ")}.</p>`;
+      `<p class="big-answer">${k.minor ? "la" : "do"} = <strong>${tonicName(k)}</strong></p>` +
+      `<p class="hint">${keyName(k)}${k.minor ? ` (do = ${doName(k)})` : ""}. Chords: ${names}.</p>`;
   },
 };
 
@@ -316,7 +321,7 @@ const chords = {
 
   scheduleQuestion(at) {
     const doMidi = doMidiFor(this.key);
-    const voiced = voiceProgression(this.question, doMidi);
+    const voiced = voiceProgression(this.question, doMidi, this.key.minor);
     const len = 1.3;
     const times = [];
     const durs = [];
@@ -330,16 +335,15 @@ const chords = {
   },
 
   async play(t, withCadence) {
-    const doMidi = doMidiFor(this.key);
-    const at = withCadence ? playCadence(doMidi) + 0.5 : 0;
+    const at = withCadence ? playCadence(this.key) + 0.5 : 0;
     const r = this.scheduleQuestion(at);
     if (this.revealed) highlightChips(this.els.answer, r.times, r.durs);
     await sleep(r.len, t);
   },
 
   async next(t) {
-    this.key = randomKey(this.key);
-    this.question = makeChordQuestion(Number(settings.cLevel), Number(settings.cCount));
+    this.key = randomKey(settings.cScale, this.key);
+    this.question = makeChordQuestion(Number(settings.cLevel), Number(settings.cCount), this.key.minor);
     this.revealed = false;
     this.render();
     await this.play(t, true);
@@ -352,13 +356,7 @@ const chords = {
 
   async cadence(t) {
     if (this.key === null) return this.next(t);
-    await sleep(playCadence(doMidiFor(this.key)), t);
-  },
-
-  async playDo(t) {
-    if (this.key === null) return;
-    Synth.note(doMidiFor(this.key), 0, 1.2);
-    await sleep(1.3, t);
+    await sleep(playCadence(this.key), t);
   },
 
   reveal() {
@@ -369,7 +367,7 @@ const chords = {
 
   render() {
     if (this.key === null) return;
-    this.els.key.textContent = `${KEYS[this.key].name} major`;
+    this.els.key.textContent = keyName(this.key);
     const a = this.els.answer;
     a.textContent = "";
     const row = document.createElement("div");
@@ -379,16 +377,13 @@ const chords = {
       chip.className = "chip" + (this.revealed ? "" : " hidden-note");
       if (this.revealed) {
         chip.type = "button";
-        const c = CHORDS[sym];
-        const root = chordRootName(this.key, sym);
         chip.innerHTML =
-          `<span class="syl">${sym}</span>` +
-          `<span class="letter">${root}${c.quality === "min" ? "m" : ""}</span>`;
+          `<span class="syl">${sym}</span>` + `<span class="letter">${chordName(this.key, sym)}</span>`;
         chip.title = "Play this chord";
         chip.addEventListener("click", () => {
           stopHandsFree();
           cancelAll();
-          const v = voiceChord(sym, doMidiFor(this.key), null);
+          const v = voiceChord(sym, doMidiFor(this.key), null, this.key.minor);
           Synth.chord(v.upper, 0, 1.2);
           Synth.note(v.bass, 0, 1.2, 0.7);
         });
@@ -400,15 +395,6 @@ const chords = {
     a.appendChild(row);
   },
 };
-
-// Spell a chord root in the key (bVII in D is C, V/V in F is G...).
-function chordRootName(keyPc, sym) {
-  const degreeOf = { I: 0, ii: 1, iii: 2, IV: 3, iv: 3, V: 4, vi: 5, bVI: 5, bVII: 6, "V/V": 1 };
-  const c = CHORDS[sym];
-  const deg = degreeOf[sym];
-  const alt = c.root - MAJOR_STEPS[deg];
-  return letterName(keyPc, { deg, alt });
-}
 
 // ---------- Modes, actions and hands-free ----------
 const modes = { melody, tonic, chords };
@@ -501,7 +487,7 @@ $("m-next").addEventListener("click", () => run((t) => melody.next(t)));
 $("m-replay").addEventListener("click", () => run((t) => melody.replay(t)));
 $("m-slow").addEventListener("click", () => run((t) => melody.replay(t, 1.7)));
 $("m-cadence").addEventListener("click", () => run((t) => melody.cadence(t)));
-$("m-do").addEventListener("click", () => run((t) => melody.playDo(t)));
+$("m-tonic").addEventListener("click", () => run((t) => melody.playTonic(t)));
 $("m-show").addEventListener("click", () => {
   stopHandsFree();
   cancelAll();
@@ -528,8 +514,23 @@ $("c-show").addEventListener("click", () => {
 
 // Settings controls
 fillSelect($("m-level"), MELODY_LEVELS.map((l) => [l.id, l.label]));
-fillSelect($("m-keymode"), [["random", "random"], ...KEYS.map((k, i) => [i, `${k.name} major`])]);
-fillSelect($("c-level"), CHORD_LEVELS.map((l) => [l.id, l.label]));
+fillSelect($("m-keymode"), [["random", "random"], ...TONIC_CHOICES.map((name, i) => [i, name])]);
+
+// Chord level labels list the chords for the chosen major/minor setting.
+function fillChordLevels() {
+  const sel = $("c-level");
+  fillSelect(
+    sel,
+    CHORD_LEVELS.map((l) => {
+      const major = l.major.join(" ");
+      const minor = l.minor.join(" ");
+      const label = settings.cScale === "major" ? major : settings.cScale === "minor" ? minor : `${major} / ${minor}`;
+      return [l.id, `${l.id} – ${label}`];
+    })
+  );
+  sel.value = String(settings.cLevel);
+}
+fillChordLevels();
 
 function bindSelect(id, key, onChange) {
   const el = $(id);
@@ -563,6 +564,9 @@ function bindRange(id, key, format, onChange) {
   });
 }
 
+bindSelect("m-scale", "mScale");
+bindSelect("t-scale", "tScale");
+bindSelect("c-scale", "cScale", fillChordLevels);
 bindSelect("m-level", "mLevel");
 bindSelect("m-keymode", "mKeyMode", () => {
   melody.phrasesInKey = 0;
@@ -599,7 +603,7 @@ document.addEventListener("keydown", (e) => {
   else if (k === " ") click("replay");
   else if (k === "a") click("show");
   else if (k === "c") click("cadence");
-  else if (k === "d") click("do");
+  else if (k === "t") click("tonic");
   else if (k === "s") click("slow");
   else if (k === "h") {
     e.preventDefault();

@@ -20,12 +20,16 @@ The microphone pitch detection works but is not part of the trainer; it lives on
 
 ## Files
 
+Every tab has a major / minor / mixed setting. Minor is **la-based** (the owner's choice):
+syllables are counted from the relative major's do, the cadence is i–iv–V–i (with si), and
+minor chords use minor-key numerals (i, iv, V, VI, VII...). A key is `{ tonic, minor }`.
+
 - `index.html`, `app.js`: the trainer. Three tabs:
   - **Melody**: cadence (I–IV–V–I) sets the key, then a short phrase. Levels 1–4 (steps →
     leaps → chromatic fi/te/le/me/si). Random or fixed key, new key every N phrases.
     The answer shows syllables (↓/↑ for octave), optional letter names; chips are clickable.
   - **Tonic**: a 4-chord loop (rotated so it rarely starts on I) plus an optional tune, in a
-    random key. A timer runs until "Show do". The time is shown, never stored.
+    random key. A timer runs until "Show tonic". The time is shown, never stored.
   - **Chords**: cadence then 1, 2 or 4 chords; the answer shows numerals and chord names.
   - **Hands-free** (all tabs): play → wait → (replay → wait) → show answer → next, so both hands
     stay on the guitar. Any button stops it.
@@ -52,7 +56,6 @@ The microphone pitch detection works but is not part of the trainer; it lives on
 
 ## Ideas not built yet
 
-- Minor keys (la-based minor, i–iv–V–i cadence) for melody and tonic modes.
 - Real songs / longer phrases with rhythm.
 
 ## Running locally
