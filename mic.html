@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rove EarTrainer – Mic Test</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <p class="back"><a href="./">← Back to the trainer</a></p>
+        <h1>Rove EarTrainer <span class="sub">Mic test</span></h1>
+        <p class="lead">
+          Play single notes on your guitar and see what the app hears. Use this to check
+          whether microphone pitch detection is reliable enough on your setup.
+        </p>
+      </header>
+
+      <section class="controls">
+        <button id="start" class="primary" type="button">Start microphone</button>
+        <label>
+          Key (for solfege)
+          <select id="key"></select>
+        </label>
+        <button id="clear" type="button">Clear log</button>
+      </section>
+
+      <p id="status" class="status">Microphone off.</p>
+
+      <section class="live" aria-live="off">
+        <div class="note-big">
+          <span id="note-name">–</span><span id="note-octave" class="octave"></span>
+        </div>
+        <div id="solfege" class="solfege">&nbsp;</div>
+        <div class="cents" aria-hidden="true">
+          <div class="cents-track"><div class="cents-center"></div><div id="cents-needle" class="cents-needle"></div></div>
+        </div>
+        <dl class="readout">
+          <div><dt>Frequency</dt><dd id="freq">–</dd></div>
+          <div><dt>Cents</dt><dd id="cents">–</dd></div>
+          <div><dt>Clarity</dt><dd id="clarity">–</dd></div>
+        </dl>
+        <div class="level">
+          <span>Level</span>
+          <div class="level-track"><div id="level-bar" class="level-bar"></div><div id="level-min" class="level-min"></div></div>
+        </div>
+      </section>
+
+      <section class="log-section">
+        <h2>Detected notes <span class="hint">(one entry per note you play)</span></h2>
+        <ol id="log" class="log"></ol>
+        <p id="log-empty" class="hint">Notes you play will appear here.</p>
+      </section>
+
+      <details class="settings">
+        <summary>Detection settings</summary>
+        <label>
+          Minimum clarity <output id="clarity-out"></output>
+          <input id="clarity-min" type="range" min="0.5" max="0.98" step="0.01" value="0.85" />
+        </label>
+        <label>
+          Minimum level <output id="level-out"></output>
+          <input id="level-min-input" type="range" min="0.002" max="0.08" step="0.001" value="0.01" />
+        </label>
+        <label>
+          Note must hold steady for <output id="stable-out"></output>
+          <input id="stable-ms" type="range" min="20" max="200" step="5" value="60" />
+        </label>
+      </details>
+
+      <section class="checklist">
+        <h2>Things to try</h2>
+        <ul>
+          <li><strong>Low strings:</strong> play open E and A, then frets 1–5. Watch for the octave jumping up.</li>
+          <li><strong>Scale:</strong> play a slow major scale. Every note should appear in the log once.</li>
+          <li><strong>Repeated notes:</strong> pick the same note 4 times. It should log 4 times.</li>
+          <li><strong>Legato:</strong> hammer-ons and pull-offs should log each new note.</li>
+          <li><strong>Speed:</strong> play a phrase faster and faster until notes start to go missing.</li>
+          <li><strong>Response time:</strong> the ms figure in the log is the time from your pluck until the note is accepted.</li>
+        </ul>
+      </section>
+    </main>
+    <script src="pitch.js"></script>
+    <script src="mic.js"></script>
+  </body>
+</html>

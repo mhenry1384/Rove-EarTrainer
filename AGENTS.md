@@ -1,79 +1,64 @@
 # Agent instructions
 
-Rove EarTrainer is a static web app (plain HTML/CSS/JS, no build step, no dependencies)
-that will be hosted on GitHub Pages from `main`. Keep it that way: no frameworks, no npm,
-no bundler. Any library must be vendored as a local file.
+Rove EarTrainer is a static PWA (plain HTML/CSS/JS, no build step, no dependencies) hosted
+on GitHub Pages from `main` (repo `mhenry1384/Rove-EarTrainer`). Pushing to `main` deploys it.
+Keep it that way: no frameworks, no npm, no bundler. Any library must be vendored as a local file.
 
 ## Why this app exists
 
 The owner plays guitar, is decent at **movable-do solfege** (not fast yet), and wants to
 **play on guitar what they hear in their head** quickly and without mistakes. Melodies first;
-later, chords by function in the key (I, IV, V, vi, then ii, iii, borrowed chords).
-They also want to find a song's tonic fast (currently it takes them 30–60 s).
+later, chords by function in the key. They also want to find a song's tonic fast.
+Their daily routine is in `PRACTICE_PLAN.md`.
 
-The owner's daily routine and milestones are in `PRACTICE_PLAN.md`. The app should support
-blocks 1 (tonic and degrees) and 3 (melody playback) of that plan, plus the weekly test.
+## No scoring (decided 2026-11-23)
 
-## Current state (as of 2026-11-13)
+The owner does **not** want exercises scored or stats tracked. They hear for themselves whether
+they played it right. The app plays things and has a "Show answer" button; that's it.
+Don't add scoring, grading, streaks or progress charts unless they ask.
+The microphone pitch detection works but is not part of the trainer; it lives on `mic.html`.
 
-Only a **microphone test page** exists. It is for checking that guitar pitch detection
-through a mic is reliable before building the real trainer.
+## Files
 
-- `pitch.js`: YIN pitch detection written from scratch. Range 70–1400 Hz, threshold 0.15,
-  parabolic interpolation, returns `{ freq, clarity }`. Also `freqToMidi()` and `rms()`.
-- `app.js`: microphone input, live display and note segmentation:
-  - `getUserMedia` with echoCancellation, noiseSuppression and autoGainControl all **off**
-    (voice processing distorts instrument pitch).
-  - Analysis runs on `setInterval` every 15 ms, **not** `requestAnimationFrame`
-    (rAF doesn't fire in some contexts, such as the Claude browser pane, and audio analysis
-    shouldn't depend on rendering).
-  - A note is **committed** when one semitone holds steady for `stableMs` (default 60) with
-    clarity ≥ 0.85 and level ≥ 0.01 RMS. The same note is committed again only after a new
-    pluck (level jumps 1.6× above the quietest of the last ~6 frames) or 120 ms of silence.
-  - The ms figure shown is the time from the pluck (or, for legato, from the pitch change) to commit.
-  - Settings are saved in localStorage under `rove-eartrainer-mictest`.
-  - Solfege is chromatic movable do: do ra re me mi fa fi sol le la te ti.
+- `index.html`, `app.js`: the trainer. Three tabs:
+  - **Melody**: cadence (I–IV–V–I) sets the key, then a short phrase. Levels 1–4 (steps →
+    leaps → chromatic fi/te/le/me/si). Random or fixed key, new key every N phrases.
+    The answer shows syllables (↓/↑ for octave), optional letter names; chips are clickable.
+  - **Tonic**: a 4-chord loop (rotated so it rarely starts on I) plus an optional tune, in a
+    random key. A timer runs until "Show do". The time is shown, never stored.
+  - **Chords**: cadence then 1, 2 or 4 chords; the answer shows numerals and chord names.
+  - **Hands-free** (all tabs): play → wait → (replay → wait) → show answer → next, so both hands
+    stay on the guitar. Any button stops it.
+- `music.js`: theory and generators (melodies, chord voicing, spelling). No DOM, no audio,
+  so it can be tested in Node with `eval`.
+- `synth.js`: Web Audio synth (`Synth.note/chord/stop`). No samples.
+- `mic.html`, `mic.js`, `pitch.js`: microphone test page. YIN pitch detection; analysis runs
+  on `setInterval` (not rAF); voice processing is off in `getUserMedia`.
+- Settings are saved in localStorage under `rove-eartrainer` (mic page: `rove-eartrainer-mictest`).
 
-**Verified:** in Node, 147 of 147 synthetic guitar-like tones from E2 to E6 were detected
-correctly, even with a very weak fundamental. In the browser, with a fake mic stream made
-from an oscillator, every note of a test phrase was committed, including repeated notes and
-a legato run, about 60–80 ms after each note started.
+## Updates must show up fast
 
-**Not yet verified:** a real guitar through a real microphone. That is the owner's next step.
-Ask how it went before building the trainer. Known risk areas: octave errors on low strings
-with laptop mics, repeated-note detection, fast passages.
+- **Bump `APP_VERSION` in `version.js` with every change to app files**
+  (HTML, CSS, JS, manifest, icons). It drives the service worker cache name
+  (`eartrainer-v<N>`) and the "Version N" footer. Don't hard-code the version elsewhere.
+- **Add new app files to `ASSETS` in `sw.js`** so they work offline.
+- **Keep the service worker network-first with `cache: "no-cache"`**. GitHub Pages sends
+  `Cache-Control: max-age=600`; without `no-cache`, online loads can be 10 minutes stale.
+- **Keep the registration in `index.html` as it is:** `updateViaCache: "none"`,
+  `registration.update()` on `visibilitychange`, and a single reload on `controllerchange`
+  (skipped on first install).
+- **Keep `skipWaiting()` and `clients.claim()`** in `sw.js`.
+- Don't add long-lived caching, hashed filenames, or "update available, tap to refresh" prompts.
 
-## Planned app (not built yet)
+## Ideas not built yet
 
-1. **Melody playback mode (main feature).** Play a cadence (I–IV–V–I) to set the key, then a
-   short melody. The user plays it back on guitar and the mic scores it.
-   - Score by **pitch class** (ignore octave, or allow ±1 octave) so octave errors don't matter.
-   - Track first-try accuracy and response time.
-   - Difficulty ramps up: 3–4 diatonic notes → 5–8 notes with leaps → chromatic notes
-     (te, fi, si, me, le). Random keys.
-2. **Tonic speed mode.** Play a short progression in a random key, and time how fast the user
-   plays the tonic.
-3. **Chord mode.** Polyphonic detection is NOT reliable in a browser, so answer by tapping a
-   multiple-choice button (I, IV, V, vi…) or by playing just the bass note.
-4. **Progress and weekly test.** Store stats and the weekly test numbers from PRACTICE_PLAN.md
-   (average tonic time, first-try phrases out of 10), and chart them.
-5. Sound playback through the Web Audio API (simple synth, or a few local piano samples).
-
-## Conventions (match the owner's other Rove apps, e.g. ../Rove TransposablePiano)
-
-When this becomes the real app, turn it into an installable PWA like the other Rove apps:
-`version.js` with `APP_VERSION` (bump it on every change to app files), a network-first `sw.js`
-using `cache: "no-cache"`, `skipWaiting()` + `clients.claim()`, `manifest.webmanifest`,
-`icons/`, and a "Version N" footer. Copy the service worker setup and its AGENTS.md rules from
-`../Rove TransposablePiano`.
+- Minor keys (la-based minor, i–iv–V–i cadence) for melody and tonic modes.
+- Real songs / longer phrases with rhythm.
 
 ## Running locally
-
-Microphone access needs HTTPS or localhost:
 
 ```bash
 python -m http.server 8765
 ```
 
-Then open http://localhost:8765. The folder is not a git repo yet; the owner will push it to
-GitHub and publish it with GitHub Pages.
+Then open http://localhost:8765 (the mic page needs HTTPS or localhost).

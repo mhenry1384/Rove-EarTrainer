@@ -3,85 +3,194 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Rove EarTrainer – Mic Test</title>
+    <title>Rove EarTrainer</title>
+    <meta name="description" content="Hear a melody, play it back on guitar. Movable-do ear training." />
     <meta name="theme-color" content="#0f172a" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="app">
       <header class="top">
-        <h1>Rove EarTrainer <span class="sub">Mic test</span></h1>
-        <p class="lead">
-          Play single notes on your guitar and see what the app hears. Use this to check
-          whether microphone pitch detection is reliable enough on your setup.
-        </p>
+        <h1>Rove EarTrainer</h1>
+        <nav class="tabs" role="tablist">
+          <button type="button" role="tab" data-mode="melody">Melody</button>
+          <button type="button" role="tab" data-mode="tonic">Tonic</button>
+          <button type="button" role="tab" data-mode="chords">Chords</button>
+        </nav>
       </header>
 
-      <section class="controls">
-        <button id="start" class="primary" type="button">Start microphone</button>
-        <label>
-          Key (for solfege)
-          <select id="key"></select>
-        </label>
-        <button id="clear" type="button">Clear log</button>
+      <!-- ===== Melody ===== -->
+      <section class="panel" data-panel="melody">
+        <p class="lead">Hear the key, then a short phrase. Sing it, then play it on guitar. Show the answer to check.</p>
+        <div class="keyline"><span>Key</span> <strong id="m-key">–</strong> <span id="m-key-note" class="hint"></span></div>
+
+        <div class="answer" id="m-answer" aria-live="polite">
+          <p class="hint">Press <strong>New phrase</strong> to start.</p>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="primary" id="m-next" title="Enter or N">New phrase</button>
+          <button type="button" id="m-replay" title="Space">Replay</button>
+          <button type="button" id="m-slow" title="S">Slower</button>
+          <button type="button" id="m-cadence" title="C">Cadence</button>
+          <button type="button" id="m-do" title="D">Do</button>
+          <button type="button" id="m-show" title="A">Show answer</button>
+        </div>
+        <div class="actions">
+          <button type="button" class="handsfree" data-hf="melody" title="H">Hands-free</button>
+          <span class="hint hf-status"></span>
+        </div>
+
+        <details class="settings">
+          <summary>Melody settings</summary>
+          <div class="grid">
+            <label>Level <select id="m-level"></select></label>
+            <label>Key <select id="m-keymode"></select></label>
+            <label>New key every
+              <select id="m-every">
+                <option value="1">phrase</option>
+                <option value="4">4 phrases</option>
+                <option value="8">8 phrases</option>
+                <option value="0">never</option>
+              </select>
+            </label>
+            <label>Cadence
+              <select id="m-cadmode">
+                <option value="always">before every phrase</option>
+                <option value="keychange">only when the key changes</option>
+              </select>
+            </label>
+            <label>Tempo <output id="m-tempo-out"></output>
+              <input type="range" id="m-tempo" min="50" max="160" step="5" />
+            </label>
+            <label class="check"><input type="checkbox" id="m-letters" /> Show letter names in the answer</label>
+          </div>
+        </details>
       </section>
 
-      <p id="status" class="status">Microphone off.</p>
-
-      <section class="live" aria-live="off">
-        <div class="note-big">
-          <span id="note-name">–</span><span id="note-octave" class="octave"></span>
+      <!-- ===== Tonic ===== -->
+      <section class="panel" data-panel="tonic" hidden>
+        <p class="lead">A short song in a random key. Find do as fast as you can: hum it, then play it. Then show it to check.</p>
+        <div class="timer" id="t-timer">0.0<span>s</span></div>
+        <div class="answer" id="t-answer" aria-live="polite">
+          <p class="hint">Press <strong>New song</strong> to start.</p>
         </div>
-        <div id="solfege" class="solfege">&nbsp;</div>
-        <div class="cents" aria-hidden="true">
-          <div class="cents-track"><div class="cents-center"></div><div id="cents-needle" class="cents-needle"></div></div>
+        <div class="actions">
+          <button type="button" class="primary" id="t-next" title="Enter or N">New song</button>
+          <button type="button" id="t-replay" title="Space">Replay</button>
+          <button type="button" id="t-show" title="A">Show do</button>
         </div>
-        <dl class="readout">
-          <div><dt>Frequency</dt><dd id="freq">–</dd></div>
-          <div><dt>Cents</dt><dd id="cents">–</dd></div>
-          <div><dt>Clarity</dt><dd id="clarity">–</dd></div>
-        </dl>
-        <div class="level">
-          <span>Level</span>
-          <div class="level-track"><div id="level-bar" class="level-bar"></div><div id="level-min" class="level-min"></div></div>
+        <div class="actions">
+          <button type="button" class="handsfree" data-hf="tonic" title="H">Hands-free</button>
+          <span class="hint hf-status"></span>
         </div>
+        <details class="settings">
+          <summary>Tonic settings</summary>
+          <div class="grid">
+            <label class="check"><input type="checkbox" id="t-tune" /> Play a tune over the chords</label>
+            <label>Tempo <output id="t-tempo-out"></output>
+              <input type="range" id="t-tempo" min="60" max="160" step="5" />
+            </label>
+          </div>
+        </details>
       </section>
 
-      <section class="log-section">
-        <h2>Detected notes <span class="hint">(what a scored exercise would see)</span></h2>
-        <ol id="log" class="log"></ol>
-        <p id="log-empty" class="hint">Notes you play will appear here.</p>
+      <!-- ===== Chords ===== -->
+      <section class="panel" data-panel="chords" hidden>
+        <p class="lead">A cadence sets the key, then chords. Name them by function (I, IV, V…), or find the bass note on guitar.</p>
+        <div class="keyline"><span>Key</span> <strong id="c-key">–</strong></div>
+        <div class="answer" id="c-answer" aria-live="polite">
+          <p class="hint">Press <strong>New chords</strong> to start.</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="primary" id="c-next" title="Enter or N">New chords</button>
+          <button type="button" id="c-replay" title="Space">Replay</button>
+          <button type="button" id="c-cadence" title="C">Cadence</button>
+          <button type="button" id="c-show" title="A">Show answer</button>
+        </div>
+        <div class="actions">
+          <button type="button" class="handsfree" data-hf="chords" title="H">Hands-free</button>
+          <span class="hint hf-status"></span>
+        </div>
+        <details class="settings">
+          <summary>Chord settings</summary>
+          <div class="grid">
+            <label>Level <select id="c-level"></select></label>
+            <label>Chords per question
+              <select id="c-count">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="4">4</option>
+              </select>
+            </label>
+          </div>
+        </details>
       </section>
 
-      <details class="settings">
-        <summary>Detection settings</summary>
-        <label>
-          Minimum clarity <output id="clarity-out"></output>
-          <input id="clarity-min" type="range" min="0.5" max="0.98" step="0.01" value="0.85" />
-        </label>
-        <label>
-          Minimum level <output id="level-out"></output>
-          <input id="level-min-input" type="range" min="0.002" max="0.08" step="0.001" value="0.01" />
-        </label>
-        <label>
-          Note must hold steady for <output id="stable-out"></output>
-          <input id="stable-ms" type="range" min="20" max="200" step="5" value="60" />
-        </label>
+      <details class="settings shared">
+        <summary>Sound and hands-free</summary>
+        <div class="grid">
+          <label>Volume <output id="vol-out"></output>
+            <input type="range" id="vol" min="0.1" max="1.5" step="0.05" />
+          </label>
+          <label>Hands-free: time to play it back <output id="hf-pause-out"></output>
+            <input type="range" id="hf-pause" min="2" max="20" step="1" />
+          </label>
+          <label>Hands-free: plays before the answer
+            <select id="hf-plays">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint">Hands-free runs on its own so both hands stay on the guitar: it plays, waits, plays again, shows the answer, then moves on. Any button stops it.</p>
       </details>
 
-      <section class="checklist">
-        <h2>Things to try</h2>
-        <ul>
-          <li><strong>Low strings:</strong> play open E and A, then frets 1–5. Watch for the octave jumping up.</li>
-          <li><strong>Scale:</strong> play a slow major scale. Every note should appear in the log once.</li>
-          <li><strong>Repeated notes:</strong> pick the same note 4 times. It should log 4 times.</li>
-          <li><strong>Legato:</strong> hammer-ons and pull-offs should log each new note.</li>
-          <li><strong>Speed:</strong> play a phrase faster and faster until notes start to go missing.</li>
-          <li><strong>Response time:</strong> the ms figure in the log is the time from your pluck until the note is accepted.</li>
-        </ul>
-      </section>
+      <p class="keys hint">Keys: Enter = new · Space = replay · A = answer · C = cadence · D = do · S = slower · H = hands-free</p>
+
+      <footer class="foot">
+        Version <span id="app-version"></span> · <a href="mic.html">Mic test</a>
+      </footer>
     </main>
-    <script src="pitch.js"></script>
+
+    <script src="version.js"></script>
+    <script src="music.js"></script>
+    <script src="synth.js"></script>
     <script src="app.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        // Reload once when a new service worker takes over, so an updated
+        // version shows up without a second manual refresh. Skipped on the
+        // very first install, when there was no previous worker.
+        const hadController = !!navigator.serviceWorker.controller;
+        let reloading = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (!hadController || reloading) return;
+          reloading = true;
+          window.location.reload();
+        });
+
+        window.addEventListener("load", () => {
+          // updateViaCache "none": always fetch sw.js and version.js from the
+          // server when checking for updates, never from the HTTP cache.
+          navigator.serviceWorker
+            .register("sw.js", { updateViaCache: "none" })
+            .then((registration) => {
+              // An installed app can sit in the background for days without
+              // reloading, so check for an update each time it comes back.
+              document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "visible") {
+                  registration.update().catch(() => {});
+                }
+              });
+            })
+            .catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>

@@ -89,5 +89,6 @@ Write both numbers down every week. They're how you'll see real progress.
 - **Functional Ear Trainer**: the core tool for tonic and degrees.
 - **EarMaster** (paid): melodic dictation and singing exercises with a microphone.
 - **toneDear.com** / **Perfect Ear**: extra interval and melody drills.
-- **Rove EarTrainer** (this app, in progress): it plays a cadence and a melody, you play it
-  back on guitar, and it scores you through the microphone. A tonic-speed mode is planned.
+- **Rove EarTrainer** (this app): plays a cadence and a melody for you to play back on guitar
+  (block 3), times how fast you find the tonic (block 1 and the weekly test), and drills chords
+  by function. Use hands-free mode to keep both hands on the guitar.

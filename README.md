@@ -1,30 +1,26 @@
 # Rove EarTrainer
 
-An ear-training app for guitar. The goal: hear a melody, play it back on the guitar,
-and have the app score you through the microphone.
+Ear training for guitar in movable do. The app plays something; you sing it, play it on
+the guitar, then show the answer to check yourself. Nothing is scored.
 
-**Current state:** a microphone test page that shows the pitch it hears from your guitar
-and logs each note you play. It's for checking that pitch detection is reliable enough before
-building the full trainer.
+- **Melody:** a cadence sets the key, then a short phrase to play back. Four levels, from
+  3–4 stepwise notes up to phrases with chromatic notes (fi, te, le, me, si).
+- **Tonic:** a short chord loop in a random key. Find do as fast as you can; a timer shows how long it took.
+- **Chords:** a cadence, then chords to name by function (I, IV, V, vi…).
+- **Hands-free:** plays, waits for you, shows the answer and moves on, so your hands stay on the guitar.
+- **Mic test** (`mic.html`): shows the pitch your guitar is playing, using YIN pitch detection.
 
-See [PRACTICE_PLAN.md](PRACTICE_PLAN.md) for the daily practice routine this app supports.
+See [PRACTICE_PLAN.md](PRACTICE_PLAN.md) for the daily routine this app supports.
 
 ## Running it
 
-Browsers only allow microphone access on secure pages (HTTPS or `localhost`), so serve the folder:
+It's a static site. Serve the folder (the mic page needs HTTPS or `localhost`):
 
 ```bash
-python -m http.server 8000
+python -m http.server 8765
 ```
 
-Then open `http://localhost:8000`. On GitHub Pages it works as is.
-
-## Files
-
-- `index.html`: page structure
-- `styles.css`: styling (light and dark)
-- `pitch.js`: YIN pitch detection, no dependencies
-- `app.js`: microphone input, note tracking and display
+Then open `http://localhost:8765`. On GitHub Pages it works as is, and it can be installed as an app.
 
 ## Built with
 
